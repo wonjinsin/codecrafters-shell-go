@@ -10,6 +10,8 @@ import (
 var _ = fmt.Fprint
 
 func main() {
+	fmt.Fprint(os.Stdout, "$ ")
+
 	command, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		fmt.Println("Error reading command:", err)
