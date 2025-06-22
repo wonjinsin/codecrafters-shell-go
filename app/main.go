@@ -7,26 +7,37 @@ import (
 	"strings"
 )
 
-var (
-	exitMessage = "exit 0"
+type command string
+
+const (
+	exit command = "exit"
+	echo command = "echo"
 )
 
 func main() {
 	for {
 		fmt.Fprint(os.Stdout, "$ ")
 
-		command, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		cmd, err := bufio.NewReader(os.Stdin).ReadString('\n')
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error reading command:", err)
 		}
 
-		command = command[:len(command)-1]
-		command = strings.TrimSpace(command)
+		cmd = cmd[:len(cmd)-1]
+		cmd = strings.TrimSpace(cmd)
 
-		if command == exitMessage {
+		cmdHeader := strings.Split(cmd, " ")[0]
+		cmdArgs := strings.Join(strings.Split(cmd, " ")[1:], " ")
+
+		if cmdHeader == string(exit) {
 			os.Exit(0)
 		}
 
-		fmt.Println(command + ": command not found")
+		if cmdHeader == string(echo) {
+			fmt.Fprintln(os.Stdout, cmdArgs)
+			continue
+		}
+
+		fmt.Fprintln(os.Stderr, cmd+": command not found")
 	}
 }
