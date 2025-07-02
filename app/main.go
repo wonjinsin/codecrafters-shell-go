@@ -12,13 +12,21 @@ import (
 type command string
 
 const (
-	exit command = "exit"
-	echo command = "echo"
+	exit  command = "exit"
+	echo  command = "echo"
+	type_ command = "type"
 )
 
 var commands = map[command]func(args string){
-	exit: exitC,
-	echo: echoC,
+	exit:  exitC,
+	echo:  echoC,
+	type_: typeC,
+}
+
+var builtins = map[command]bool{
+	exit:  true,
+	echo:  true,
+	type_: true,
 }
 
 func exitC(args string) {
@@ -31,6 +39,14 @@ func exitC(args string) {
 
 func echoC(args string) {
 	fmt.Fprintln(os.Stdout, args)
+}
+
+func typeC(args string) {
+	if !builtins[command(args)] {
+		fmt.Fprintln(os.Stdout, "invalid_command: not found")
+		return
+	}
+	fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", args)
 }
 
 func handle(msg string) {
@@ -47,7 +63,7 @@ func handle(msg string) {
 }
 
 func main() {
-	sigs := make(chan os.Signal)
+	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go handleSignal(sigs)
 
@@ -67,7 +83,7 @@ func main() {
 }
 
 func handleSignal(sigs chan os.Signal) {
-	for _ = range sigs {
+	for range sigs {
 		os.Exit(0)
 	}
 }
