@@ -23,7 +23,7 @@ var commands = map[command]func(args string){
 
 func exitC(args string) {
 	code := 1
-	if args != "0" {
+	if args == "0" {
 		code = 0
 	}
 	os.Exit(code)
