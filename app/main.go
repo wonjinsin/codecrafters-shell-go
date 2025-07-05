@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -29,6 +30,8 @@ var builtins = map[command]bool{
 	type_: true,
 }
 
+var path = os.Getenv("PATH")
+
 func exitC(args string) {
 	code := 1
 	if args == "0" {
@@ -42,11 +45,28 @@ func echoC(args string) {
 }
 
 func typeC(args string) {
-	if !builtins[command(args)] {
-		fmt.Fprintln(os.Stdout, "invalid_command: not found")
+	if builtins[command(args)] {
+		fmt.Fprintf(os.Stdout, "type: %s is a shell builtin\n", args)
 		return
 	}
-	fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", args)
+
+	for p := range strings.SplitSeq(path, ":") {
+		fullPath := filepath.Join(p, args)
+		fileInfo, err := os.Stat(fullPath)
+		if err == nil {
+			if fileInfo.Mode()&0111 != 0 {
+				fmt.Fprintf(os.Stdout, "%s: not found\n", args)
+				return
+			}
+			fmt.Fprintf(os.Stdout, "%s is %s\n", args, fullPath)
+			return
+		}
+		if os.IsNotExist(err) {
+			continue
+		}
+		fmt.Fprintf(os.Stdout, "%s: unknown error, %s\n", args, err)
+	}
+	fmt.Fprintf(os.Stdout, "%s: not found\n", args)
 }
 
 func handle(msg string) {
