@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
@@ -50,23 +51,31 @@ func typeC(args string) {
 		return
 	}
 
+	fullPath := getExecutablePath(args)
+	if fullPath == nil {
+		fmt.Fprintf(os.Stdout, "%s: not found\n", args)
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "%s is %s\n", args, *fullPath)
+}
+
+func getExecutablePath(args string) *string {
 	for p := range strings.SplitSeq(path, ":") {
 		fullPath := filepath.Join(p, args)
 		fileInfo, err := os.Stat(fullPath)
 		if err == nil {
-			if fileInfo.Mode()&0111 != 0 {
-				fmt.Fprintf(os.Stdout, "%s: not found\n", args)
-				return
+			if fileInfo.Mode()&0o111 != 0 {
+				return nil
 			}
-			fmt.Fprintf(os.Stdout, "%s is %s\n", args, fullPath)
-			return
+			return &fullPath
 		}
 		if os.IsNotExist(err) {
 			continue
 		}
-		fmt.Fprintf(os.Stdout, "%s: unknown error, %s\n", args, err)
 	}
-	fmt.Fprintf(os.Stdout, "%s: not found\n", args)
+
+	return nil
 }
 
 func handle(msg string) {
@@ -74,12 +83,17 @@ func handle(msg string) {
 	hdr := parts[0]
 	args := strings.Join(parts[1:], " ")
 
-	if _, ok := commands[command(hdr)]; !ok {
-		fmt.Fprintln(os.Stderr, hdr+": command not found")
+	if _, ok := commands[command(hdr)]; ok {
+		commands[command(hdr)](args)
 		return
 	}
 
-	commands[command(hdr)](args)
+	if fullPath := getExecutablePath(hdr); fullPath != nil {
+		exec.Command(*fullPath, args).Run()
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "%s: not found\n", hdr)
 }
 
 func main() {
