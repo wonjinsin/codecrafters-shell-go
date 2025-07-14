@@ -17,18 +17,21 @@ const (
 	exit  command = "exit"
 	echo  command = "echo"
 	type_ command = "type"
+	pwd   command = "pwd"
 )
 
 var commands = map[command]func(args string){
 	exit:  exitC,
 	echo:  echoC,
 	type_: typeC,
+	pwd:   pwdC,
 }
 
 var builtins = map[command]bool{
 	exit:  true,
 	echo:  true,
 	type_: true,
+	pwd:   true,
 }
 
 var path = os.Getenv("PATH")
@@ -58,6 +61,15 @@ func typeC(args string) {
 	}
 
 	fmt.Fprintf(os.Stdout, "%s is %s\n", args, *fullPath)
+}
+
+func pwdC(args string) {
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "pwd: %v\n", err)
+		return
+	}
+	fmt.Fprintln(os.Stdout, wd)
 }
 
 func getExecutablePath(args string) *string {
